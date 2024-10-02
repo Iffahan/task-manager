@@ -9,7 +9,7 @@
     <div class="task-list mt-4">
       <div 
         class="task-item" 
-        v-for="task in currentTasks" 
+        v-for="task in tasks" 
         :key="task.id"
       >
         <div class="flex gap-4 items-center">
@@ -27,35 +27,6 @@
           </div>  
           <img :src="task.image" alt="Task Image" class="w-16 h-16 rounded-lg object-cover">
         </div>
-      </div>
-
-      <!-- Pagination inside the task list box -->
-      <div class="pagination mt-4">
-        <button 
-          @click="currentPage--" 
-          :disabled="currentPage === 1" 
-          class="pagination-button"
-        >
-          &lt;
-        </button>
-        <span class="page-numbers">
-          <span 
-            v-for="page in totalPages" 
-            :key="page" 
-            @click="currentPage = page" 
-            :class="{'active': currentPage === page}" 
-            class="page-number"
-          >
-            {{ page }}
-          </span>
-        </span>
-        <button 
-          @click="currentPage++" 
-          :disabled="currentPage === totalPages" 
-          class="pagination-button"
-        >
-          &gt;
-        </button>
       </div>
     </div>
   </div>
@@ -124,18 +95,7 @@ export default defineComponent({
           image: "path_to_your_image_5", // Replace with the actual image path
         },
       ] as Task[],
-      currentPage: 1,
-      tasksPerPage: 3, // Show a maximum of 3 tasks per page
     };
-  },
-  computed: {
-    totalPages() {
-      return Math.ceil(this.tasks.length / this.tasksPerPage);
-    },
-    currentTasks() {
-      const startIndex = (this.currentPage - 1) * this.tasksPerPage;
-      return this.tasks.slice(startIndex, startIndex + this.tasksPerPage);
-    },
   },
   methods: {
     getStatusColor(status: string) {
@@ -161,45 +121,5 @@ export default defineComponent({
   padding: 16px; /* Inner padding */
   margin-bottom: 16px; /* Spacing between tasks */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-}
-
-/* Pagination styles */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 16px; /* Add space above the pagination */
-}
-
-.pagination-button {
-  background-color: #ff9800; /* Orange background for buttons */
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  margin: 0 5px;
-  cursor: pointer;
-  border-radius: 5px;
-}
-
-.pagination-button:disabled {
-  background-color: #e0e0e0; /* Disabled button color */
-  cursor: not-allowed;
-}
-
-.page-numbers {
-  display: flex;
-  align-items: center;
-}
-
-.page-number {
-  margin: 0 5px;
-  cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 5px;
-}
-
-.page-number.active {
-  background-color: #ff9800; /* Highlight active page */
-  color: white;
 }
 </style>

@@ -56,7 +56,6 @@
             <div>
               <h3 class="font-bold">{{ task.title }}</h3>
               <p class="text-gray-600">{{ task.description }}</p>
-              <span class="text-sm text-blue-600">Priority: {{ task.priority }}</span>
               <p class="text-sm text-gray-500 mt-2">Due Date: {{ formatDate(task.date) }}</p>
               <img v-if="task.image" :src="task.image" alt="Task Image" class="mt-2 w-24 h-24 object-cover rounded-lg" />
             </div>
@@ -66,6 +65,13 @@
             >
               {{ task.status }}
             </span>
+
+            <!-- Participation Status Button -->
+            <button 
+              @click.stop="toggleParticipation(task)" 
+              class="bg-green-500 text-white px-4 py-2 rounded-lg">
+              {{ task.isParticipating ? 'Unparticipate' : 'Participate' }}
+            </button>
           </div>
         </div>
       </div>
@@ -83,7 +89,6 @@
             <div>
               <h3 class="font-bold">{{ task.title }}</h3>
               <p class="text-gray-600">{{ task.description }}</p>
-              <span class="text-sm text-blue-600">Priority: {{ task.priority }}</span>
               <p class="text-sm text-gray-500 mt-2">Due Date: {{ formatDate(task.date) }}</p>
               <img v-if="task.image" :src="task.image" alt="Task Image" class="mt-2 w-24 h-24 object-cover rounded-lg" />
             </div>
@@ -93,6 +98,13 @@
             >
               {{ task.status }}
             </span>
+
+            <!-- Participation Status Button -->
+            <button 
+              @click.stop="toggleParticipation(task)" 
+              class="bg-green-500 text-white px-4 py-2 rounded-lg">
+              {{ task.isParticipating ? 'Unparticipate' : 'Participate' }}
+            </button>
           </div>
         </div>
       </div>
@@ -115,6 +127,12 @@
           <option value="In Progress">In Progress</option>
           <option value="Completed">Completed</option>
         </select>
+
+        <!-- Participants List -->
+        <h3 class="text-lg font-semibold mt-4">Participants:</h3>
+        <ul class="list-disc pl-4">
+          <li v-for="user in selectedTask.participants" :key="user.id">{{ user.name }}</li>
+        </ul>
 
         <div class="flex justify-end">
           <button @click="closeTaskModal" class="bg-red-500 text-white px-4 py-2 rounded-lg mr-2">Cancel</button>
@@ -147,18 +165,6 @@
           placeholder="Task Description"
         ></textarea>
 
-        <!-- Priority Dropdown -->
-        <label for="priority" class="block text-gray-700">Priority</label>
-        <select
-          id="priority"
-          v-model="newTask.priority"
-          class="block w-full mt-1 mb-4 p-2 border border-gray-300 rounded-md"
-        >
-          <option value="Low">Low</option>
-          <option value="Moderate">Moderate</option>
-          <option value="High">High</option>
-        </select>
-
         <!-- Status Dropdown -->
         <label for="status" class="block text-gray-700">Status</label>
         <select
@@ -171,12 +177,23 @@
           <option value="Completed">Completed</option>
         </select>
 
-        <!-- Date Picker -->
-        <label for="taskDate" class="block text-gray-700">Due Date</label>
+        <!-- Participants Dropdown -->
+        <label for="participants" class="block text-gray-700">Participants</label>
+        <select
+          id="participants"
+          v-model="newTask.participants"
+          class="block w-full mt-1 mb-4 p-2 border border-gray-300 rounded-md"
+          multiple
+        >
+          <option v-for="user in users" :key="user.id" :value="user">{{ user.name }}</option>
+        </select>
+
+        <!-- Due Date Input -->
+        <label for="dueDate" class="block text-gray-700">Due Date</label>
         <input
-          id="taskDate"
-          type="date"
+          id="dueDate"
           v-model="newTask.date"
+          type="date"
           class="block w-full mt-1 mb-4 p-2 border border-gray-300 rounded-md"
         />
 
@@ -186,70 +203,38 @@
           id="taskImage"
           type="file"
           @change="handleImageUpload"
-          class="block w-full mt-1 mb-4"
+          class="block w-full mt-1 mb-4 p-2 border border-gray-300 rounded-md"
         />
 
         <div class="flex justify-end">
           <button @click="closeCreateTaskModal" class="bg-red-500 text-white px-4 py-2 rounded-lg mr-2">Cancel</button>
-          <button @click="createTask" class="bg-green-500 text-white px-4 py-2 rounded-lg">Create</button>
+          <button @click="createTask" class="bg-green-500 text-white px-4 py-2 rounded-lg">Create Task</button>
         </div>
       </div>
     </div>
   </div>
 </template>
-
 <script>
-import NavBar from '@/components/Navbar.vue';
+import axios from 'axios';
 
 export default {
-  components: {
-    NavBar
-  },
   data() {
     return {
       isSidebarOpen: false,
       showModal: false,
       showCreateModal: false,
+      myTasks: [],
+      assignedTasks: [],
       selectedTask: {},
       newTask: {
         title: '',
         description: '',
-        priority: 'Low',
-        status: 'Not Started',
         date: '',
+        status: 'Not Started',
+        participants: [],
         image: null,
       },
-      myTasks: [
-        {
-          id: 1,
-          title: 'Task 1',
-          description: 'Description for task 1',
-          priority: 'High',
-          status: 'Not Started',
-          date: '2024-09-15',
-          image: null,
-        },
-        {
-          id: 2,
-          title: 'Task 2',
-          description: 'Description for task 2',
-          priority: 'Moderate',
-          status: 'In Progress',
-          date: '2024-09-20',
-          image: null,
-        },
-      ],
-      assignedTasks: [
-        {
-          id: 3,
-          title: 'Task 3',
-          description: 'Description for task 3',
-          priority: 'Low',
-          status: 'Completed',
-          date: '2024-09-25',
-          image: null,
-        },
-      ],
+      users: [] // List of users to select from (replace with your data source)
     };
   },
   methods: {
@@ -259,6 +244,13 @@ export default {
     closeSidebar() {
       this.isSidebarOpen = false;
     },
+    openCreateTaskModal() {
+      this.showCreateModal = true;
+    },
+    closeCreateTaskModal() {
+      this.showCreateModal = false;
+      this.resetNewTask();
+    },
     openTaskModal(task) {
       this.selectedTask = { ...task };
       this.showModal = true;
@@ -267,66 +259,96 @@ export default {
       this.showModal = false;
     },
     updateTaskStatus() {
-      const taskIndex = this.myTasks.findIndex((t) => t.id === this.selectedTask.id);
-      if (taskIndex !== -1) {
-        this.$set(this.myTasks, taskIndex, { ...this.selectedTask });
-      } else {
-        const assignedTaskIndex = this.assignedTasks.findIndex((t) => t.id === this.selectedTask.id);
-        if (assignedTaskIndex !== -1) {
-          this.$set(this.assignedTasks, assignedTaskIndex, { ...this.selectedTask });
+      // Update status logic (API call)
+      this.showModal = false;
+    },
+    async createTask() {
+      // Prepare the task data
+      const ownerID = localStorage.getItem('user.ID')
+      const taskData = {
+        title: this.newTask.title,
+        description: this.newTask.description,
+        due_date: this.newTask.date,
+        status: this.newTask.status,
+        participants: this.newTask.participants,
+        owner_id: ownerID, // Set the owner_id (replace with dynamic data if needed)
+        image: this.newTask.image ? await this.convertImageToBase64(this.newTask.image) : null,
+      };
+
+      try {
+        // Get the token from localStorage
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          console.error('No token found');
+          return;
         }
+
+        // Make the POST request to create the task
+        const response = await axios.post('http://localhost:4000/tasks', taskData, {
+          headers: {
+            Authorization: `${token}`, // Add the token to the Authorization header
+          },
+        });
+
+        // Handle success
+        if (response.status === 200) {
+          this.showCreateModal = false;
+          this.resetNewTask();
+          console.log('Task created successfully:', response.data);
+          // Optionally, update the task list or perform other actions
+        } else {
+          console.error('Failed to create task', response.data);
+        }
+      } catch (error) {
+        console.error('Error creating task:', error);
       }
-      this.closeTaskModal();
     },
-    openCreateTaskModal() {
-      this.showCreateModal = true;
-    },
-    closeCreateTaskModal() {
-      this.showCreateModal = false;
-    },
-    createTask() {
-      if (this.newTask.title && this.newTask.description) {
-        this.myTasks.push({ ...this.newTask, id: this.myTasks.length + 1 });
-        this.closeCreateTaskModal();
-      }
+    resetNewTask() {
+      this.newTask = {
+        title: '',
+        description: '',
+        date: '',
+        status: 'Not Started',
+        participants: [], // Reset participants
+        image: null,
+      };
     },
     handleImageUpload(event) {
-      const file = event.target.files[0];
-      if (file) {
+      this.newTask.image = event.target.files[0];
+    },
+    async convertImageToBase64(imageFile) {
+      // Convert image file to Base64 string
+      return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          this.newTask.image = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
+        reader.onloadend = () => resolve(reader.result.split(',')[1]); // Get only the base64 part
+        reader.onerror = reject;
+        reader.readAsDataURL(imageFile);
+      });
+    },
+    formatDate(date) {
+      return new Date(date).toLocaleDateString();
     },
     getStatusColor(status) {
       switch (status) {
         case 'Not Started':
-          return '#F59E0B'; // Amber
+          return 'gray';
         case 'In Progress':
-          return '#3B82F6'; // Blue
+          return 'blue';
         case 'Completed':
-          return '#10B981'; // Green
+          return 'green';
         default:
-          return '#6B7280'; // Gray
+          return 'gray';
       }
     },
-    formatDate(date) {
-      const options = { year: 'numeric', month: 'long', day: 'numeric' };
-      return new Date(date).toLocaleDateString(undefined, options);
-    },
-  },
+    toggleParticipation(task) {
+      // Toggle participation status by adding/removing users
+      const user = this.users.find(u => u.id === this.selectedUserId);
+      if (task.participants.includes(user)) {
+        task.participants = task.participants.filter(u => u.id !== user.id);
+      } else {
+        task.participants.push(user);
+      }
+    }
+  }
 };
 </script>
-
-<style scoped>
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform 0.3s ease;
-}
-.slide-enter,
-.slide-leave-to {
-  transform: translateX(-100%);
-}
-</style>
