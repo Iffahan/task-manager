@@ -51,6 +51,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data() {
     return {
@@ -60,15 +62,29 @@ export default {
     }
   },
   methods: {
-    handleRegister() {
-      if (this.password !== this.confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-      }
+    async handleRegister() {
+  if (this.password !== this.confirmPassword) {
+    alert("Passwords do not match!");
+    return;
+  }
 
-      // Handle registration logic here
-      alert(`Registering with: ${this.email}`);
+  try {
+    const response = await axios.post('http://localhost:4000/register', {
+      email: this.email,
+      password: this.password
+    });
+    alert(response.data.message); // Show success message
+    this.$router.push('/login'); // Redirect to login page
+  } catch (error) {
+    console.error('Registration failed:', error);
+    if (error.response) {
+      alert(error.response.data.error || 'Registration failed! Please try again.');
+    } else {
+      alert('Registration failed! Please try again.');
     }
+  }
+}
+
   }
 }
 </script>

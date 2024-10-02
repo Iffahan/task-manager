@@ -1,4 +1,4 @@
-<template>
+ <template>
   <div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-orange-400 to-orange-600 space-y-8">
     <h1 class="text-3xl font-bold text-white">Login to Your Account</h1>
     
@@ -36,21 +36,63 @@
     </p>
 
     <nuxt-link to="/" class="mt-4 inline-block px-4 py-2 bg-white text-orange-600 font-bold rounded-md hover:bg-gray-200 transition duration-200">Back to Home</nuxt-link>
+
+    <!-- Show error message if login fails -->
+    <p v-if="loginError" class="text-red-500 text-sm mt-4">Login failed! Please check your credentials.</p>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data() {
     return {
       email: '',
-      password: ''
+      password: '',
+      token: null,  // Store the JWT token here
+      loginError: false // Flag to show login error message
     }
   },
   methods: {
-    handleLogin() {
-      // Handle login logic here
-      alert(`Logging in with: ${this.email}`);
+    async handleLogin() {
+      this.loginError = false; // Reset error flag before each attempt
+
+      try {
+        const response = await axios.post('http://localhost:4000/login', {
+          email: this.email,
+          password: this.password
+        });
+
+        // Store the token in localStorage or Vuex for persistent use
+        this.token = response.data.token;
+        localStorage.setItem('auth_token', this.token); // Save token in localStorage
+
+        // Fetch the user profile (email) after successful login
+        await this.fetchUserProfile();
+
+        // Optionally, redirect to the user dashboard or another page
+        this.$router.push('/'); // Redirect to home page after successful login
+      } catch (error) {
+        console.error('Login failed:', error);
+        this.loginError = true; // Show error message in UI
+      }
+    },
+
+    async fetchUserProfile() {
+      const token = localStorage.getItem('auth_token'); // Get the token from localStorage
+      try {
+        const response = await axios.get('http://localhost:4000/profile', {
+          headers: {
+            Authorization: `${token}`,
+          }
+        });
+
+        // Save the user profile to localStorage
+        localStorage.setItem('user', JSON.stringify(response.data)); // Save user profile data
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
     }
   }
 }
