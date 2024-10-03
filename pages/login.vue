@@ -1,4 +1,4 @@
- <template>
+<template>
   <div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-orange-400 to-orange-600 space-y-8">
     <h1 class="text-3xl font-bold text-white">Login to Your Account</h1>
     
@@ -42,37 +42,41 @@
   </div>
 </template>
 
-<script>
-import axios from 'axios';
+<script lang="ts">
+import { defineComponent } from 'vue';
 
-export default {
+export default defineComponent({
   data() {
     return {
       email: '',
       password: '',
-      token: null,  // Store the JWT token here
-      loginError: false // Flag to show login error message
-    }
+      loginError: false, // Flag to show login error message
+    };
   },
   methods: {
     async handleLogin() {
       this.loginError = false; // Reset error flag before each attempt
 
       try {
-        const response = await axios.post('http://localhost:4000/login', {
+        // Use async/await for making the POST request with axios to login
+        const response = await this.$axios.post('/login', {
           email: this.email,
-          password: this.password
+          password: this.password,
         });
 
-        // Store the token in localStorage or Vuex for persistent use
-        this.token = response.data.token;
-        localStorage.setItem('auth_token', this.token); // Save token in localStorage
+        // Check if login is successful and token is returned
+        if (response && response.data && response.data.token) {
+          const token = response.data.token;
+          
+          // Store the token in localStorage for persistent use
+          localStorage.setItem('auth_token', token);
 
-        // Fetch the user profile (email) after successful login
-        await this.fetchUserProfile();
+          // Fetch user profile after successful login
+          await this.fetchUserProfile();
 
-        // Optionally, redirect to the user dashboard or another page
-        this.$router.push('/'); // Redirect to home page after successful login
+          // Optionally, redirect to the user dashboard or home page
+          this.$router.push('/');
+        }
       } catch (error) {
         console.error('Login failed:', error);
         this.loginError = true; // Show error message in UI
@@ -80,24 +84,35 @@ export default {
     },
 
     async fetchUserProfile() {
-      const token = localStorage.getItem('auth_token'); // Get the token from localStorage
+      const token = localStorage.getItem('auth_token');
+
+      if (!token) {
+        console.error('No token found in localStorage.');
+        return;
+      }
+
       try {
-        const response = await axios.get('http://localhost:4000/profile', {
+        // Fetch user profile using the token in Authorization header
+        const response = await this.$axios.get('/profile', {
           headers: {
             Authorization: `${token}`,
-          }
+          },
         });
 
-        // Save the user profile to localStorage
-        localStorage.setItem('user', JSON.stringify(response.data)); // Save user profile data
+        // Check if profile data is returned
+      if (response && response.data) {
+      const { ID, email } = response.data;  // Use 'ID' and 'email' from API response
+
+      // Store the entire user object in localStorage
+      const user = { ID, email };
+      localStorage.setItem('user', JSON.stringify(user));
+
+      console.log('User profile fetched successfully:', user);
+        }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Failed to fetch user profile:', error);
       }
     }
   }
-}
+});
 </script>
-
-<style scoped>
-/* Additional styles can go here if needed */
-</style>

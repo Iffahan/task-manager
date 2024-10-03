@@ -214,10 +214,15 @@
     </div>
   </div>
 </template>
+
+
 <script>
-import axios from 'axios';
+import NavBar from "~/components/Navbar.vue";
 
 export default {
+  components: {
+    NavBar,
+  },
   data() {
     return {
       isSidebarOpen: false,
@@ -258,20 +263,25 @@ export default {
     closeTaskModal() {
       this.showModal = false;
     },
-    updateTaskStatus() {
-      // Update status logic (API call)
-      this.showModal = false;
-    },
     async createTask() {
       // Prepare the task data
-      const ownerID = localStorage.getItem('user.ID')
+      const user = JSON.parse(localStorage.getItem('user'));
+
+      // Check if user exists and has a valid ID
+      const ownerID = user ? user.ID : null;
+
+      if (!ownerID) {
+        console.error('Owner ID is missing');
+        return;
+      }
+
       const taskData = {
         title: this.newTask.title,
         description: this.newTask.description,
         due_date: this.newTask.date,
         status: this.newTask.status,
         participants: this.newTask.participants,
-        owner_id: ownerID, // Set the owner_id (replace with dynamic data if needed)
+        owner_id: ownerID,
         image: this.newTask.image ? await this.convertImageToBase64(this.newTask.image) : null,
       };
 
@@ -283,8 +293,8 @@ export default {
           return;
         }
 
-        // Make the POST request to create the task
-        const response = await axios.post('http://localhost:4000/tasks', taskData, {
+        // Make the POST request using Nuxt Axios instance ($axios)
+        const response = await this.$axios.post('/tasks', taskData, {
           headers: {
             Authorization: `${token}`, // Add the token to the Authorization header
           },
@@ -352,3 +362,4 @@ export default {
   }
 };
 </script>
+

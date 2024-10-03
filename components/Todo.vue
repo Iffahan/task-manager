@@ -22,8 +22,8 @@
           <div class="flex-1">
             <h4 class="font-bold">{{ task.title }}</h4>
             <p class="text-gray-600">{{ task.description }}</p>
-            <span class="text-sm text-blue-600">Priority: {{ task.priority }} | Status: {{ task.status }}</span>
-            <div class="text-sm text-gray-400 mt-1">Created on: {{ task.createdOn }}</div>
+            <span class="text-sm text-blue-600">Status: {{ task.status }}</span>
+            <div class="text-sm text-gray-400 mt-1">Created on: {{ formatDate(task.createdOn) }}</div>
           </div>  
           <img :src="task.image" alt="Task Image" class="w-16 h-16 rounded-lg object-cover">
         </div>
@@ -39,7 +39,6 @@ interface Task {
   id: number;
   title: string;
   description: string;
-  priority: string;
   status: string;
   createdOn: string;
   image: string;
@@ -48,56 +47,15 @@ interface Task {
 export default defineComponent({
   data() {
     return {
-      tasks: [
-        {
-          id: 1,
-          title: "Attend Nischal's Birthday Party",
-          description: "Buy gifts on the way and pick up cake from the bakery. (6 PM | Fresh Elements)",
-          priority: "Moderate",
-          status: "Not Started",
-          createdOn: "20/06/2023",
-          image: "path_to_your_image_1", // Replace with the actual image path
-        },
-        {
-          id: 2,
-          title: "Landing Page Design for TravelDays",
-          description: "Get the work done by EOD and discuss with the client before leaving. (4 PM | Meeting Room)",
-          priority: "Moderate",
-          status: "In Progress",
-          createdOn: "20/06/2023",
-          image: "path_to_your_image_2", // Replace with the actual image path
-        },
-        {
-          id: 3,
-          title: "Presentation on Final Product",
-          description: "Make sure everything is functioning and all necessities are met.",
-          priority: "Moderate",
-          status: "In Progress",
-          createdOn: "19/06/2023",
-          image: "path_to_your_image_3", // Replace with the actual image path
-        },
-        {
-          id: 4,
-          title: "Meeting with Team",
-          description: "Discuss project milestones and deadlines.",
-          priority: "High",
-          status: "Not Started",
-          createdOn: "21/06/2023",
-          image: "path_to_your_image_4", // Replace with the actual image path
-        },
-        {
-          id: 5,
-          title: "Code Review",
-          description: "Review code submitted by teammates.",
-          priority: "High",
-          status: "Not Started",
-          createdOn: "22/06/2023",
-          image: "path_to_your_image_5", // Replace with the actual image path
-        },
-      ] as Task[],
+      tasks: [] as Task[], // Store tasks data
     };
   },
+  mounted() {
+    // Fetch tasks when the component is mounted
+    this.getTasks();
+  },
   methods: {
+    // Map task status to corresponding color
     getStatusColor(status: string) {
       switch (status) {
         case 'Completed':
@@ -109,6 +67,40 @@ export default defineComponent({
         default:
           return '#000000'; // Default to black if status is unrecognized
       }
+    },
+    // Fetch tasks with token
+    async getTasks() {
+      const authToken = localStorage.getItem('auth_token'); // Get token from localStorage
+      if (!authToken) {
+        console.error('Authorization token is missing');
+        return;
+      }
+
+      try {
+        // Use Nuxt's $axios to make the GET request
+        const response = await this.$axios.get('/getTasks', {
+          headers: {
+            Authorization: `${authToken}`, // Send the token in the Authorization header
+          },
+        });
+
+        // Map the fetched tasks to the desired structure
+        this.tasks = response.data.map((task: any) => ({
+          id: task.ID,
+          title: task.Title,
+          description: task.Description,
+          status: task.Status,
+          createdOn: task.CreatedAt, // Storing created date in 'createdOn'
+          image: `data:image/jpeg;base64,${task.Image}`, // Handling base64 image
+        }));
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+      }
+    },
+    // Format date into a human-readable format
+    formatDate(dateString: string) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString(); // Format the date in a readable format
     },
   },
 });
